@@ -6,7 +6,6 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 
 void main() {
   runApp(const MyApp());
@@ -55,8 +54,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  static const double _scannerDialogHeight = 420;
-
   final ImagePicker _imagePicker = ImagePicker();
   final TextEditingController _searchController = TextEditingController();
   final GoogleSignIn _googleSignIn = GoogleSignIn(
@@ -70,7 +67,6 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _isLoading = false;
   XFile? _selectedPhoto;
   PlatformFile? _selectedPdf;
-  bool _scannerOpen = false;
 
   final String folderId = "1FHUvS5YGNwlvLha5Ir-_kS7w8PpOsCfQ";
 
@@ -253,106 +249,6 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  Future<void> _scanBarcodeIntoSearch() async {
-    if (_scannerOpen || _isLoading) {
-      return;
-    }
-
-    setState(() => _scannerOpen = true);
-    final scannerController = MobileScannerController(
-      detectionSpeed: DetectionSpeed.noDuplicates,
-    );
-    bool isHandlingBarcode = false;
-    String? scannedCode;
-
-    try {
-      scannedCode = await showDialog<String>(
-        context: context,
-        builder: (context) {
-          return Dialog(
-            child: SizedBox(
-              height: _scannerDialogHeight,
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          "Escanear código",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.close),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Text("Apunta la cámara al código de barras."),
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: MobileScanner(
-                      controller: scannerController,
-                      onDetect: (capture) {
-                        if (isHandlingBarcode) {
-                          return;
-                        }
-
-                        if (capture.barcodes.isEmpty) {
-                          return;
-                        }
-
-                        final barcode = capture.barcodes.first.rawValue;
-                        if (barcode == null || barcode.trim().isEmpty) {
-                          return;
-                        }
-
-                        isHandlingBarcode = true;
-                        scannerController.stop();
-                        if (context.mounted && Navigator.of(context).canPop()) {
-                          Navigator.of(context).pop(barcode.trim());
-                        }
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      );
-    } catch (e) {
-      if (mounted) {
-        _updateStatus("❌ No se pudo abrir la cámara: $e");
-      }
-    } finally {
-      await scannerController.dispose();
-      if (mounted) {
-        setState(() => _scannerOpen = false);
-      }
-    }
-
-    if (!mounted) {
-      return;
-    }
-
-    if (scannedCode != null) {
-      _searchController.text = scannedCode;
-      _searchController.selection = TextSelection.fromPosition(
-        TextPosition(offset: _searchController.text.length),
-      );
-      _updateStatus("✅ Código escaneado: $scannedCode");
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -404,12 +300,6 @@ class _MyHomePageState extends State<MyHomePage> {
                           isDense: true,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton.filled(
-                      onPressed: _scanBarcodeIntoSearch,
-                      icon: const Icon(Icons.qr_code_scanner),
-                      tooltip: "Escanear código de barras",
                     ),
                   ],
                 ),
