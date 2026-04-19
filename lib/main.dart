@@ -289,12 +289,12 @@ class _MyHomePageState extends State<MyHomePage> {
                   'assets/images/logo.png',
                   height: 96,
                   fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => const Semantics(
+                  errorBuilder: (errorContext, error, stackTrace) => Semantics(
                     label: 'Logo no disponible',
                     child: Icon(
                       Icons.broken_image_outlined,
                       size: 64,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      color: Theme.of(errorContext).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
