@@ -4,8 +4,8 @@ A new Flutter project.
 
 ## Regenerar íconos de la app
 
-El ícono fuente está en `assets/app_icon_source.png` (fondo blanco con la letra **R**)
-y el foreground adaptativo en `assets/app_icon_foreground.png`.
+El logo principal de la app está en `assets/images/logo.png`.
+También se usa como fuente para generar íconos Android/iOS.
 
 Para regenerar íconos Android/iOS:
 
