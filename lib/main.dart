@@ -306,7 +306,11 @@ class _MyHomePageState extends State<MyHomePage> {
                           return;
                         }
 
-                        final barcode = capture.barcodes.firstOrNull?.rawValue;
+                        if (capture.barcodes.isEmpty) {
+                          return;
+                        }
+
+                        final barcode = capture.barcodes.first.rawValue;
                         if (barcode == null || barcode.trim().isEmpty) {
                           return;
                         }
