@@ -340,8 +340,8 @@ class _MyHomePageState extends State<MyHomePage> {
       return;
     }
 
-    if (scannedCode != null && scannedCode.isNotEmpty) {
-      _searchController.text = scannedCode;
+    if (scannedCode?.isNotEmpty ?? false) {
+      _searchController.text = scannedCode!;
       _searchController.selection = TextSelection.fromPosition(
         TextPosition(offset: _searchController.text.length),
       );
