@@ -273,7 +273,7 @@ class _MyHomePageState extends State<MyHomePage> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: isDarkMode
                       ? null
@@ -289,6 +289,10 @@ class _MyHomePageState extends State<MyHomePage> {
                   'assets/images/logo.png',
                   height: 96,
                   fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.broken_image_outlined,
+                    size: 64,
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
