@@ -55,7 +55,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  static const double _scannerDialogHeight = 420;
+  static const double _kScannerDialogHeight = 420;
 
   final ImagePicker _imagePicker = ImagePicker();
   final TextEditingController _searchController = TextEditingController();
@@ -262,7 +262,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final scannerController = MobileScannerController(
       detectionSpeed: DetectionSpeed.noDuplicates,
     );
-    bool hasProcessedBarcode = false;
+    bool isHandlingBarcode = false;
     String? scannedCode;
 
     try {
@@ -271,7 +271,7 @@ class _MyHomePageState extends State<MyHomePage> {
         builder: (context) {
           return Dialog(
             child: SizedBox(
-              height: _scannerDialogHeight,
+              height: _kScannerDialogHeight,
               child: Column(
                 children: [
                   Padding(
@@ -301,8 +301,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   Expanded(
                     child: MobileScanner(
                       controller: scannerController,
-                      onDetect: (capture) async {
-                        if (hasProcessedBarcode) {
+                      onDetect: (capture) {
+                        if (isHandlingBarcode) {
                           return;
                         }
 
@@ -311,8 +311,8 @@ class _MyHomePageState extends State<MyHomePage> {
                           return;
                         }
 
-                        hasProcessedBarcode = true;
-                        await scannerController.stop();
+                        isHandlingBarcode = true;
+                        scannerController.stop();
                         if (context.mounted && Navigator.of(context).canPop()) {
                           Navigator.of(context).pop(barcode.trim());
                         }
@@ -340,8 +340,8 @@ class _MyHomePageState extends State<MyHomePage> {
       return;
     }
 
-    if (scannedCode?.isNotEmpty ?? false) {
-      _searchController.text = scannedCode!;
+    if (scannedCode != null) {
+      _searchController.text = scannedCode;
       _searchController.selection = TextSelection.fromPosition(
         TextPosition(offset: _searchController.text.length),
       );
