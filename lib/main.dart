@@ -325,12 +325,14 @@ class _MyHomePageState extends State<MyHomePage> {
           );
         },
       );
+    } catch (e) {
+      if (mounted) {
+        _updateStatus("❌ No se pudo abrir la cámara: $e");
+      }
     } finally {
       await scannerController.dispose();
       if (mounted) {
         setState(() => _scannerOpen = false);
-      } else {
-        _scannerOpen = false;
       }
     }
 
