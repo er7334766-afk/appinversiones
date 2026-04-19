@@ -244,6 +244,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.blue,
@@ -268,6 +270,36 @@ class _MyHomePageState extends State<MyHomePage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: isDarkMode
+                      ? null
+                      : const [
+                          BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                ),
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  height: 96,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const Semantics(
+                    label: 'Logo no disponible',
+                    child: Icon(
+                      Icons.broken_image_outlined,
+                      size: 64,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
               const Text(
                 "📤 Subir archivos a Bandejas",
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
