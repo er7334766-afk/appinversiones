@@ -55,7 +55,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  static const double _kScannerDialogHeight = 420;
+  static const double _scannerDialogHeight = 420;
 
   final ImagePicker _imagePicker = ImagePicker();
   final TextEditingController _searchController = TextEditingController();
@@ -271,7 +271,7 @@ class _MyHomePageState extends State<MyHomePage> {
         builder: (context) {
           return Dialog(
             child: SizedBox(
-              height: _kScannerDialogHeight,
+              height: _scannerDialogHeight,
               child: Column(
                 children: [
                   Padding(
