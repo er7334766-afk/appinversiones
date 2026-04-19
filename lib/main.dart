@@ -348,7 +348,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ],
               if (_isLoading)
-                const Column(
+                Column(
                   children: [
                     SizedBox(height: 40),
                     CircularProgressIndicator(),
