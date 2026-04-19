@@ -1,10 +1,33 @@
-import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:googleapis/drive/v3.dart' as drive;
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 
 void main() {
   runApp(const MyApp());
+}
+
+class GoogleAuthClient extends http.BaseClient {
+  GoogleAuthClient(this._headers);
+
+  final Map<String, String> _headers;
+  final http.Client _client = http.Client();
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) {
+    request.headers.addAll(_headers);
+    return _client.send(request);
+  }
+
+  @override
+  void close() {
+    _client.close();
+    super.close();
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -41,8 +64,12 @@ class _MyHomePageState extends State<MyHomePage> {
   GoogleSignInAccount? _currentUser;
   String _statusMessage = "Presiona 'Iniciar sesión' para comenzar";
   bool _isLoading = false;
+  XFile? _selectedPhoto;
+  PlatformFile? _selectedPdf;
 
   final String folderId = "1FHUvS5YGNwlvLha5Ir-_kS7w8PpOsCfQ";
+
+  bool get _hasFilesToUpload => _selectedPhoto != null || _selectedPdf != null;
 
   @override
   void initState() {
@@ -74,10 +101,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _handleSignOut() async {
     await _googleSignIn.signOut();
+    setState(() {
+      _selectedPhoto = null;
+      _selectedPdf = null;
+    });
     _updateStatus("Sesión cerrada");
   }
 
-  Future<void> _pickAndUploadPhoto() async {
+  Future<void> _pickPhoto() async {
     if (_currentUser == null) {
       _updateStatus("❌ Debes iniciar sesión primero");
       return;
@@ -93,7 +124,10 @@ class _MyHomePageState extends State<MyHomePage> {
       );
 
       if (image != null) {
-        _updateStatus("✅ Foto capturada: ${image.name}");
+        setState(() {
+          _selectedPhoto = image;
+        });
+        _updateStatus("✅ Foto lista para subir: ${image.name}");
       }
     } catch (e) {
       _updateStatus("❌ Error al tomar foto: $e");
@@ -102,7 +136,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  Future<void> _pickAndUploadFile() async {
+  Future<void> _pickFile() async {
     if (_currentUser == null) {
       _updateStatus("❌ Debes iniciar sesión primero");
       return;
@@ -118,11 +152,92 @@ class _MyHomePageState extends State<MyHomePage> {
       );
 
       if (result != null) {
-        _updateStatus("✅ Archivo seleccionado: ${result.files.single.name}");
+        setState(() {
+          _selectedPdf = result.files.single;
+        });
+        _updateStatus("✅ PDF listo para subir: ${result.files.single.name}");
       }
     } catch (e) {
       _updateStatus("❌ Error al seleccionar archivo: $e");
     } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _uploadFile(
+    drive.DriveApi driveApi, {
+    required String filePath,
+    required String fileName,
+    required String contentType,
+  }) async {
+    final file = File(filePath);
+    final media = drive.Media(
+      file.openRead(),
+      await file.length(),
+      contentType: contentType,
+    );
+
+    final driveFile = drive.File()
+      ..name = fileName
+      ..parents = [folderId];
+
+    await driveApi.files.create(driveFile, uploadMedia: media);
+  }
+
+  Future<void> _uploadSelectedFiles() async {
+    if (_currentUser == null) {
+      _updateStatus("❌ Debes iniciar sesión primero");
+      return;
+    }
+
+    if (!_hasFilesToUpload) {
+      _updateStatus("❌ Primero selecciona una foto o un PDF");
+      return;
+    }
+
+    GoogleAuthClient? client;
+
+    try {
+      setState(() => _isLoading = true);
+      _updateStatus("☁️ Subiendo archivos a Google Drive...");
+
+      final authHeaders = await _currentUser!.authHeaders;
+      client = GoogleAuthClient(authHeaders);
+      final driveApi = drive.DriveApi(client);
+
+      final uploadedNames = <String>[];
+
+      if (_selectedPhoto != null) {
+        await _uploadFile(
+          driveApi,
+          filePath: _selectedPhoto!.path,
+          fileName: _selectedPhoto!.name,
+          contentType: 'image/jpeg',
+        );
+        uploadedNames.add(_selectedPhoto!.name);
+      }
+
+      final pdfPath = _selectedPdf?.path;
+      if (pdfPath != null) {
+        await _uploadFile(
+          driveApi,
+          filePath: pdfPath,
+          fileName: _selectedPdf!.name,
+          contentType: 'application/pdf',
+        );
+        uploadedNames.add(_selectedPdf!.name);
+      }
+
+      setState(() {
+        _selectedPhoto = null;
+        _selectedPdf = null;
+      });
+
+      _updateStatus("✅ Subida completa: ${uploadedNames.join(', ')}");
+    } catch (e) {
+      _updateStatus("❌ Error al subir a Google Drive: $e");
+    } finally {
+      client?.close();
       setState(() => _isLoading = false);
     }
   }
@@ -162,7 +277,7 @@ class _MyHomePageState extends State<MyHomePage> {
               Container(
                 padding: const EdgeInsets.all(15),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: Colors.blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: Colors.blue, width: 2),
                 ),
@@ -189,7 +304,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 )
               else ...[
                 ElevatedButton.icon(
-                  onPressed: _isLoading ? null : _pickAndUploadPhoto,
+                  onPressed: _isLoading ? null : _pickPhoto,
                   icon: const Icon(Icons.camera_alt),
                   label: const Text("📷 Tomar Foto"),
                   style: ElevatedButton.styleFrom(
@@ -203,7 +318,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton.icon(
-                  onPressed: _isLoading ? null : _pickAndUploadFile,
+                  onPressed: _isLoading ? null : _pickFile,
                   icon: const Icon(Icons.file_present),
                   label: const Text("📄 Seleccionar PDF"),
                   style: ElevatedButton.styleFrom(
@@ -215,10 +330,26 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: _isLoading || !_hasFilesToUpload
+                      ? null
+                      : _uploadSelectedFiles,
+                  icon: const Icon(Icons.cloud_upload),
+                  label: const Text("☁️ Subir a Google Drive"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 30,
+                      vertical: 15,
+                    ),
+                  ),
+                ),
               ],
               if (_isLoading)
                 Column(
-                  children: const [
+                  children: [
                     SizedBox(height: 40),
                     CircularProgressIndicator(),
                     SizedBox(height: 20),
