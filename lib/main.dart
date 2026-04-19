@@ -294,6 +294,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: Icon(
                       Icons.broken_image_outlined,
                       size: 64,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
