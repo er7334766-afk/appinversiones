@@ -262,7 +262,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final scannerController = MobileScannerController(
       detectionSpeed: DetectionSpeed.noDuplicates,
     );
-    bool handledDetection = false;
+    bool hasProcessedBarcode = false;
     String? scannedCode;
 
     try {
@@ -302,7 +302,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: MobileScanner(
                       controller: scannerController,
                       onDetect: (capture) async {
-                        if (handledDetection) {
+                        if (hasProcessedBarcode) {
                           return;
                         }
 
@@ -311,7 +311,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           return;
                         }
 
-                        handledDetection = true;
+                        hasProcessedBarcode = true;
                         await scannerController.stop();
                         if (context.mounted && Navigator.of(context).canPop()) {
                           Navigator.of(context).pop(barcode.trim());
