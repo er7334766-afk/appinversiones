@@ -55,6 +55,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  static const double _scannerDialogHeight = 420;
+
   final ImagePicker _imagePicker = ImagePicker();
   final TextEditingController _searchController = TextEditingController();
   final GoogleSignIn _googleSignIn = GoogleSignIn(
@@ -256,56 +258,81 @@ class _MyHomePageState extends State<MyHomePage> {
       return;
     }
 
-    _scannerOpen = true;
-    final scannedCode = await showDialog<String>(
-      context: context,
-      builder: (context) {
-        return Dialog(
-          child: SizedBox(
-            height: 420,
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "Escanear código",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.close),
-                      ),
-                    ],
-                  ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: Text("Apunta la cámara al código de barras."),
-                ),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: MobileScanner(
-                    onDetect: (capture) {
-                      final barcode = capture.barcodes.firstOrNull?.rawValue;
-                      if (barcode != null && barcode.trim().isNotEmpty) {
-                        Navigator.of(context).pop(barcode.trim());
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+    setState(() => _scannerOpen = true);
+    final scannerController = MobileScannerController(
+      detectionSpeed: DetectionSpeed.noDuplicates,
     );
-    _scannerOpen = false;
+    bool handledDetection = false;
+    String? scannedCode;
+
+    try {
+      scannedCode = await showDialog<String>(
+        context: context,
+        builder: (context) {
+          return Dialog(
+            child: SizedBox(
+              height: _scannerDialogHeight,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Escanear código",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text("Apunta la cámara al código de barras."),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: MobileScanner(
+                      controller: scannerController,
+                      onDetect: (capture) async {
+                        if (handledDetection) {
+                          return;
+                        }
+
+                        final barcode = capture.barcodes.firstOrNull?.rawValue;
+                        if (barcode == null || barcode.trim().isEmpty) {
+                          return;
+                        }
+
+                        handledDetection = true;
+                        await scannerController.stop();
+                        if (context.mounted && Navigator.of(context).canPop()) {
+                          Navigator.of(context).pop(barcode.trim());
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    } finally {
+      await scannerController.dispose();
+      if (mounted) {
+        setState(() => _scannerOpen = false);
+      } else {
+        _scannerOpen = false;
+      }
+    }
 
     if (!mounted) {
       return;
